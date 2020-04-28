@@ -1,40 +1,29 @@
 package com.rumaruka.tb.common.block;
 
-
-import DummyCore.Utils.BlockStateMetadata;
-
 import com.rumaruka.tb.init.TBItems;
 import com.rumaruka.tb.utils.TBConfig;
-import net.minecraft.block.*;
-
-import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockBush;
+import net.minecraft.block.IGrowable;
+import net.minecraft.block.SoundType;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyInteger;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.EnumDyeColor;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.common.EnumPlantType;
-import net.minecraftforge.common.IPlantable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public  class BlockTBPlant  extends BlockBush implements IGrowable {
-
+public class BlockPlax extends BlockBush implements IGrowable {
 
     public int growthStages;
     public int growthDelay;
@@ -43,9 +32,9 @@ public  class BlockTBPlant  extends BlockBush implements IGrowable {
     public ItemStack dropItem;
     public ItemStack dropSeed;
 
-
-    public BlockTBPlant(int stages, int delay, boolean isCrop) {
+    public BlockPlax(int stages, int delay,boolean isCrop){
         super();
+
         growthStages = stages;
         growthDelay = delay;
         requiresFarmland = isCrop;
@@ -56,27 +45,30 @@ public  class BlockTBPlant  extends BlockBush implements IGrowable {
         this.disableStats();
     }
 
-
     @Override
     protected BlockStateContainer createBlockState() {
         if(AGE==null){
-            AGE = PropertyInteger.create("age",0,getGrowthStages());
+            AGE=PropertyInteger.create("age",0,7);
         }
         return new BlockStateContainer(this,AGE);
     }
-
     public int getGrowthStages() {
-        return growthStages=7;
+        return growthStages;
     }
 
     @Override
     public int getMetaFromState(IBlockState state) {
-        return state.getValue(AGE);
+        return    state.getValue(AGE);
     }
 
     @Override
     public IBlockState getStateFromMeta(int meta) {
         return getDefaultState().withProperty(AGE,Math.min(growthStages,meta));
+    }
+
+    @Override
+    public BlockRenderLayer getBlockLayer() {
+        return BlockRenderLayer.CUTOUT;
     }
 
 
@@ -113,17 +105,40 @@ public  class BlockTBPlant  extends BlockBush implements IGrowable {
 
     @Override
     public void grow(World worldIn, Random rand, BlockPos pos, IBlockState state) {
-        int groM=state.getValue(AGE);
+        int i = this.getAge(state) + this.getBonemealAgeIncrease(worldIn);
+        int j = this.getMaxAge();
 
-        if(groM>getGrowthStages()){
-          groM = getGrowthStages();
-
-
+        if (i > j)
+        {
+            i = j;
         }
-        worldIn.setBlockState(pos,state.withProperty(AGE,groM+1));
+
+        worldIn.setBlockState(pos, this.withAge(i), 2);
 
     }
+    protected int getBonemealAgeIncrease(World worldIn)
+    {
+        return MathHelper.getInt(worldIn.rand, 2, 5);
+    }
 
+    public int getMaxAge()
+    {
+        return growthStages;
+    }
+
+    protected int getAge(IBlockState state)
+    {
+        return ((Integer)state.getValue(this.getAgeProperty())).intValue();
+    }
+    protected PropertyInteger getAgeProperty()
+    {
+        return AGE;
+    }
+
+    public IBlockState withAge(int age)
+    {
+        return this.getDefaultState().withProperty(this.getAgeProperty(), Integer.valueOf(age));
+    }
 
     @Override
     public List<ItemStack> getDrops(IBlockAccess w, BlockPos pos, IBlockState state, int fortune) {
@@ -148,7 +163,8 @@ public  class BlockTBPlant  extends BlockBush implements IGrowable {
             }
         }
         return ret;
-    }
+}
+
     protected static float getGrowthChance(Block blockIn, World worldIn, BlockPos pos)
     {
         float f = 1.0F;
